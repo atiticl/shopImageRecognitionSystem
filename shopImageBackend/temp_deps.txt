@@ -1,0 +1,15 @@
+﻿<dependency>
+<groupId>org.openpnp</groupId>
+<artifactId>opencv</artifactId>
+<version>4.8.0-0</version>
+</dependency>
+<dependency>
+<groupId>org.tensorflow</groupId>
+<artifactId>tensorflow-core-platform</artifactId>
+<version>0.5.0</version>
+</dependency>
+<dependency>
+<groupId>org.tensorflow</groupId>
+<artifactId>tensorflow-framework</artifactId>
+<version>0.5.0</version>
+</dependency>

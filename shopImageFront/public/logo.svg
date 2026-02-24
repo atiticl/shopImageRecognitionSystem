@@ -1,0 +1,88 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆形 -->
+  <circle cx="24" cy="24" r="22" fill="url(#gradient1)" stroke="url(#gradient2)" stroke-width="2"/>
+  
+  <!-- 主要图标 - 智能识别眼睛 -->
+  <g transform="translate(12, 16)">
+    <!-- 外眼框 -->
+    <ellipse cx="12" cy="8" rx="11" ry="7" fill="none" stroke="white" stroke-width="2" opacity="0.9"/>
+    
+    <!-- 内眼球 -->
+    <circle cx="12" cy="8" r="5" fill="white" opacity="0.95"/>
+    
+    <!-- 瞳孔 -->
+    <circle cx="12" cy="8" r="3" fill="url(#gradient3)"/>
+    
+    <!-- 高光点 -->
+    <circle cx="13.5" cy="6.5" r="1" fill="white" opacity="0.8"/>
+    
+    <!-- 扫描线条 -->
+    <g opacity="0.7">
+      <line x1="2" y1="4" x2="6" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="2" y1="12" x2="6" y2="12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="18" y1="4" x2="22" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+      <line x1="18" y1="12" x2="22" y2="12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+  </g>
+  
+  <!-- 装饰性数据点 -->
+  <g opacity="0.6">
+    <circle cx="8" cy="12" r="1.5" fill="white"/>
+    <circle cx="40" cy="36" r="1.5" fill="white"/>
+    <circle cx="6" cy="36" r="1" fill="white"/>
+    <circle cx="42" cy="12" r="1" fill="white"/>
+  </g>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <!-- 主背景渐变 -->
+    <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 边框渐变 -->
+    <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.3" />
+    </linearGradient>
+    
+    <!-- 瞳孔渐变 -->
+    <radialGradient id="gradient3" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  
+  <!-- 动画效果 -->
+  <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .pulse-animation {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .rotate-animation {
+      animation: rotate 8s linear infinite;
+      transform-origin: 24px 24px;
+    }
+  </style>
+  
+  <!-- 外圈装饰 -->
+  <circle cx="24" cy="24" r="20" fill="none" stroke="white" stroke-width="0.5" opacity="0.3" class="rotate-animation"/>
+  
+  <!-- 脉冲效果的装饰点 -->
+  <g class="pulse-animation">
+    <circle cx="8" cy="12" r="1.5" fill="white"/>
+    <circle cx="40" cy="36" r="1.5" fill="white"/>
+  </g>
+</svg>

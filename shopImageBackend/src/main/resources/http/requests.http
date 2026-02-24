@@ -1,0 +1,15 @@
+﻿### Health
+GET http://localhost:8080/api/health
+
+### Check cache by md5
+GET http://localhost:8080/api/cache/check?md5=d41d8cd98f00b204e9800998ecf8427e
+
+### Upload image (enqueue for async processing)
+POST http://localhost:8080/api/images/upload?enqueue=true
+Content-Type: multipart/form-data
+
+### Classify single image
+GET http://localhost:8080/api/classify/one?imageId=1
+
+### List categories
+GET http://localhost:8080/api/categories

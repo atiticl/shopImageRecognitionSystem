@@ -1,0 +1,82 @@
+# 排除根目录下的文件和文件夹，只保留三个项目文件夹
+/*
+!/shopImageBackend/
+!/shopImageFront/
+!/shopImageTrainBackend/
+!.gitignore
+!README.md
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+target/
+*.iml
+.idea/
+.settings/
+.classpath
+.project
+
+# Node
+node_modules/
+dist/
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.bak
+*.zip
+temp_images/
+datasets/processed_dataset/images/
+
+# 模型文件（太大）
+*.pt
+*.pth
+*.onnx
+*.h5
+*.pb
+models/model_*
+shopImageBackend/models/
+
+# 数据集文件（太大）
+*.7z
+*.zip
+超市商品数据集.7z
+shopImageTrainBackend/超市商品数据集.7z
+shopImageTrainBackend/datasets/
+shopImageTrainBackend/runs/
+
+# 数据库
+*.db
+*.sqlite
+*.sql
+
+# 配置文件中的敏感信息
+application-prod.yml
+application-dev.yml
