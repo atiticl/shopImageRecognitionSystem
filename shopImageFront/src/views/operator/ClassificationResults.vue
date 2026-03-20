@@ -186,19 +186,19 @@
               <el-option
                 v-for="task in tasks"
                 :key="task.id"
-                :label="task.name"
+                :label="task.taskName || task.name || `任务#${task.id}`"
                 :value="task.id"
               />
             </el-select>
           </el-form-item>
           
           <el-form-item label="预测类别">
-            <el-select v-model="filters.predictedCategory" placeholder="选择类别" clearable @change="searchResults" style="width: 150px">
+            <el-select v-model="filters.predictedCategoryId" placeholder="选择类别" clearable @change="searchResults" style="width: 150px">
               <el-option
                 v-for="category in categories"
                 :key="category.id"
                 :label="category.name"
-                :value="category.name"
+                :value="category.id"
               />
             </el-select>
           </el-form-item>
@@ -466,7 +466,7 @@ const batchResults = reactive({
 // 筛选条件
 const filters = reactive({
   taskId: '',
-  predictedCategory: '',
+  predictedCategoryId: null as number | null,
   confidenceRange: [0, 100],
   isCorrected: null as boolean | null
 })
@@ -716,7 +716,7 @@ const searchResults = () => {
 const resetFilters = () => {
   Object.assign(filters, {
     taskId: '',
-    predictedCategory: '',
+    predictedCategoryId: null,
     confidenceRange: [0, 100],
     isCorrected: null
   })
@@ -731,7 +731,8 @@ const loadTasks = async () => {
         'Authorization': `Bearer ${userStore.token}`
       }
     })
-    tasks.value = response.data.data || []
+    const data = response.data.data
+    tasks.value = data?.list || data?.records || (Array.isArray(data) ? data : [])
   } catch (error) {
     console.error('加载任务列表失败:', error)
     ElMessage.error('加载任务列表失败')
@@ -768,13 +769,15 @@ const loadCategories = async () => {
 const loadResults = async () => {
   loading.value = true
   try {
+    const minConfidence = filters.confidenceRange[0] / 100
+    const maxConfidence = filters.confidenceRange[1] / 100
     const params = {
       page: pagination.page,
       size: pagination.size,
       taskId: filters.taskId || undefined,
-      predictedCategory: filters.predictedCategory || undefined,
-      minConfidence: filters.confidenceRange[0],
-      maxConfidence: filters.confidenceRange[1],
+      predictedCategoryId: filters.predictedCategoryId || undefined,
+      minConfidence,
+      maxConfidence,
       isCorrected: filters.isCorrected
     }
     
@@ -898,12 +901,14 @@ const batchCorrect = async () => {
 // 导出结果
 const exportResults = async () => {
   try {
+    const minConfidence = filters.confidenceRange[0] / 100
+    const maxConfidence = filters.confidenceRange[1] / 100
     const response = await axios.get('/api/classification-results/export', {
       params: {
         taskId: filters.taskId || undefined,
-        predictedCategory: filters.predictedCategory || undefined,
-        minConfidence: filters.confidenceRange[0],
-        maxConfidence: filters.confidenceRange[1],
+        predictedCategoryId: filters.predictedCategoryId || undefined,
+        minConfidence,
+        maxConfidence,
         isCorrected: filters.isCorrected
       },
       headers: {

@@ -495,7 +495,7 @@ onUnmounted(() => {
 .system-logs {
   padding: 24px;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-  min-height: 100vh;
+  min-height: 100%;
   position: relative;
 }
 

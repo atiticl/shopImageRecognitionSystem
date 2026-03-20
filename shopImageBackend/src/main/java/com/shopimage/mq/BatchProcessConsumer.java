@@ -33,7 +33,6 @@ public class BatchProcessConsumer {
         Map<String, Object> payload = objectMapper.readValue(body, Map.class);
         Long taskId = Long.valueOf(payload.get("taskId").toString());
         String zipObjectName = payload.get("zipObjectName").toString();
-        String zipUrl = payload.get("zipUrl").toString();
 
         log.info("开始处理批量任务 {} 的压缩包: {}", taskId, zipObjectName);
 
@@ -93,8 +92,10 @@ public class BatchProcessConsumer {
                     
                     // 生成新的文件名
                     String originalName = entry.getName();
+                    String normalizedName = originalName.replace("\\", "/");
+                    String shortName = normalizedName.substring(normalizedName.lastIndexOf("/") + 1);
                     String fileName = "task-" + taskId + "/" + System.currentTimeMillis() + "_" + 
-                                    originalName.substring(originalName.lastIndexOf("/") + 1);
+                            shortName;
                     String objectName = "test-images/" + fileName;
                     
                     // 上传到MinIO
@@ -103,10 +104,10 @@ public class BatchProcessConsumer {
                     
                     // 保存图片记录
                     ProductImage image = ProductImage.builder()
-                            .objectName(originalName)
+                            .objectName(objectName)
                             .fileUrl(fileUrl)
                             .userId(1L)
-                            .bucket("product-images")
+                            .bucket(minioService.getBucket())
                             .status("UPLOADED")
                             .uploadedAt(LocalDateTime.now())
                             .build();

@@ -74,7 +74,25 @@
               </el-select>
             </div>
           </template>
-          <div class="chart-container" ref="taskTrendChart"></div>
+          <div class="chart-container">
+            <template v-if="taskTrendPoints.length">
+              <svg class="line-chart-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polyline class="line-chart-path" :points="taskTrendPolyline" />
+                <circle
+                  v-for="point in taskTrendPoints"
+                  :key="`${point.date}-${point.x}`"
+                  class="line-chart-point"
+                  :cx="point.x"
+                  :cy="point.y"
+                  r="1.5"
+                />
+              </svg>
+              <div class="line-chart-footer">
+                <span v-for="label in taskTrendLabels" :key="label">{{ label }}</span>
+              </div>
+            </template>
+            <div v-else class="chart-empty">暂无趋势数据</div>
+          </div>
         </el-card>
       </el-col>
       
@@ -91,7 +109,19 @@
               </el-select>
             </div>
           </template>
-          <div class="chart-container" ref="accuracyChart"></div>
+          <div class="chart-container">
+            <div v-if="accuracyBars.length" class="bar-chart">
+              <div v-for="bar in accuracyBars" :key="bar.category" class="bar-item">
+                <div class="bar-track">
+                  <div class="bar-fill" :style="{ height: `${bar.value}%` }">
+                    <span class="bar-value">{{ bar.rawValue.toFixed(1) }}%</span>
+                  </div>
+                </div>
+                <div class="bar-label">{{ bar.category }}</div>
+              </div>
+            </div>
+            <div v-else class="chart-empty">暂无准确率数据</div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -258,8 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   User, Document, Picture, Setting, Monitor, Coin, 
@@ -272,10 +301,9 @@ import {
   getChartData,
   type DashboardStats,
   type SystemStatus,
-  type ActivityRecord
+  type ActivityRecord,
+  type ChartData
 } from '@/api/dashboard'
-
-const router = useRouter()
 
 // 统计数据
 const stats = reactive<DashboardStats>({
@@ -303,9 +331,60 @@ const recentActivities = ref<ActivityRecord[]>([])
 // 加载状态
 const loading = ref(false)
 
-// 图表引用
-const taskTrendChart = ref<HTMLElement>()
-const accuracyChart = ref<HTMLElement>()
+const chartData = ref<ChartData>({
+  taskTrend: {
+    dates: [],
+    values: []
+  },
+  accuracy: {
+    categories: [],
+    values: []
+  }
+})
+
+const taskTrendPoints = computed(() => {
+  const values = chartData.value.taskTrend.values
+  const dates = chartData.value.taskTrend.dates
+  if (!values.length) return []
+  const maxValue = Math.max(...values, 1)
+  return values.map((value, index) => ({
+    x: values.length === 1 ? 50 : (index / (values.length - 1)) * 100,
+    y: 86 - (value / maxValue) * 62,
+    value,
+    date: dates[index] || ''
+  }))
+})
+
+const taskTrendPolyline = computed(() => {
+  return taskTrendPoints.value.map(point => `${point.x},${point.y}`).join(' ')
+})
+
+const taskTrendLabels = computed(() => {
+  const dates = chartData.value.taskTrend.dates
+  if (dates.length <= 6) {
+    return dates.map(formatChartDate)
+  }
+  const step = Math.ceil(dates.length / 6)
+  const sampled = dates.filter((_, index) => index % step === 0).map(formatChartDate)
+  const lastLabel = formatChartDate(dates[dates.length - 1])
+  if (sampled[sampled.length - 1] !== lastLabel) {
+    sampled[sampled.length - 1] = lastLabel
+  }
+  return sampled.slice(0, 6)
+})
+
+const accuracyBars = computed(() => {
+  const categories = chartData.value.accuracy.categories || []
+  const values = chartData.value.accuracy.values || []
+  return categories.map((category, index) => {
+    const rawValue = Number(values[index] || 0)
+    return {
+      category,
+      rawValue,
+      value: Math.max(0, Math.min(100, rawValue))
+    }
+  })
+})
 
 // 获取进度条颜色
 const getProgressColor = (percentage: number) => {
@@ -350,11 +429,13 @@ const formatTime = (time: string) => {
   return activityTime.toLocaleDateString()
 }
 
-// 初始化图表
-const initCharts = () => {
-  // 这里可以使用 ECharts 或其他图表库初始化图表
-  // 由于没有引入图表库，这里只是占位
-  console.log('初始化图表')
+const formatChartDate = (dateText: string) => {
+  if (!dateText) return ''
+  const date = new Date(dateText)
+  if (Number.isNaN(date.getTime())) return dateText
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${month}-${day}`
 }
 
 // 刷新仪表板
@@ -422,22 +503,37 @@ const loadDashboardData = async () => {
   }
 }
 
-// 监听时间范围变化，重新加载图表数据
-watch([taskTrendPeriod, accuracyPeriod], async () => {
+const getAccuracyPeriod = () => {
+  if (accuracyPeriod.value === 'month') return '30d'
+  if (accuracyPeriod.value === 'quarter') return '90d'
+  return '7d'
+}
+
+const loadChartData = async () => {
   try {
-    const chartData = await getChartData(taskTrendPeriod.value)
-    // 这里可以更新图表数据
-    console.log('图表数据更新:', chartData)
+    const [taskTrendData, accuracyData] = await Promise.all([
+      getChartData(taskTrendPeriod.value),
+      getChartData(getAccuracyPeriod())
+    ])
+    chartData.value = {
+      taskTrend: taskTrendData.taskTrend,
+      accuracy: accuracyData.accuracy
+    }
   } catch (error) {
     console.error('更新图表数据失败:', error)
+    chartData.value = {
+      taskTrend: { dates: [], values: [] },
+      accuracy: { categories: [], values: [] }
+    }
   }
-})
+}
+
+// 监听时间范围变化，重新加载图表数据
+watch([taskTrendPeriod, accuracyPeriod], loadChartData)
 
 onMounted(() => {
   loadDashboardData()
-  nextTick(() => {
-    initCharts()
-  })
+  loadChartData()
 })
 </script>
 
@@ -445,7 +541,7 @@ onMounted(() => {
 .admin-dashboard {
   padding: 24px;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-  min-height: 100vh;
+  min-height: 100%;
   position: relative;
 }
 
@@ -631,12 +727,105 @@ onMounted(() => {
   width: 100%;
   border-radius: 16px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 16px 18px 14px;
   color: #64748b;
   font-size: 16px;
   font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.line-chart-svg {
+  width: 100%;
+  height: 300px;
+}
+
+.line-chart-path {
+  fill: none;
+  stroke: #3b82f6;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.line-chart-point {
+  fill: #3b82f6;
+  stroke: #ffffff;
+  stroke-width: 0.7;
+}
+
+.line-chart-footer {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.bar-chart {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 12px;
+}
+
+.bar-item {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bar-track {
+  flex: 1;
+  width: 100%;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.2);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar-fill {
+  width: 100%;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, #22d3ee 0%, #3b82f6 100%);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 2px;
+  transition: height 0.35s ease;
+}
+
+.bar-value {
+  margin-top: 6px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.bar-label {
+  margin-top: 8px;
+  max-width: 90px;
+  text-align: center;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.chart-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
 }
 
 .status-list, .activity-list {
@@ -883,6 +1072,19 @@ onMounted(() => {
   
   .chart-container {
     height: 250px;
+    padding: 12px;
+  }
+
+  .line-chart-svg {
+    height: 190px;
+  }
+
+  .line-chart-footer {
+    font-size: 10px;
+  }
+
+  .bar-label {
+    font-size: 11px;
   }
   
   .status-list, .activity-list {

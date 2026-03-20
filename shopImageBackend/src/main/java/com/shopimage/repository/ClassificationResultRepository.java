@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface ClassificationResultRepository extends JpaRepository<ClassificationResult, Long>, JpaSpecificationExecutor<ClassificationResult> {
     List<ClassificationResult> findByImageId(Long imageId);
+    List<ClassificationResult> findByTaskIdIn(List<Long> taskIds);
     
     @Modifying
     @Transactional

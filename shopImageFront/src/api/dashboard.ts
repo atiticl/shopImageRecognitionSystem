@@ -1,5 +1,4 @@
 import { http } from '@/utils/request'
-import axios from 'axios'
 
 // 仪表板统计数据接口
 export interface DashboardStats {
@@ -50,41 +49,16 @@ export interface ChartData {
  */
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    // 首先获取用户统计数据（最重要的数据）
-    const userStats = await http.get('/api/users/statistics')
-    
-    // 并行获取其他统计数据，允许这些失败
-    const [modelStats, logStats] = await Promise.allSettled([
-      axios.get('http://localhost:5000/api/models').catch(() => ({ data: { models: [] } })),
-      http.get('/api/system-logs/statistics').catch(() => ({ data: { data: { totalLogs: 0 } } }))
-    ])
-
-    // 从用户统计中获取用户数和任务数
-    const userData = userStats.data || {}
-    const totalUsers = userData.totalUsers || userData.total || 0
-    const totalTasks = userData.totalTasks || userData.activeTasks || 0
-    const totalImages = userData.totalImages || userData.processedImages || 0
-
-    // 从模型统计中获取模型数
-    let totalModels = 0
-    if (modelStats.status === 'fulfilled') {
-      const modelData = modelStats.value?.data?.models || []
-      totalModels = modelData.length
-    }
-
+    const response = await http.get<ApiResponse<DashboardStats>>('/api/dashboard/stats')
+    const data = response.data || {}
     return {
-      totalUsers,
-      totalTasks,
-      totalImages,
-      totalModels
+      totalUsers: Number(data.totalUsers || 0),
+      totalTasks: Number(data.totalTasks || 0),
+      totalImages: Number(data.totalImages || 0),
+      totalModels: Number(data.totalModels || 0)
     }
   } catch (error) {
     console.error('获取仪表板统计数据失败:', error)
-    // 认证错误直接抛出，让上层处理
-    if (error.response?.status === 401 || error.response?.status === 403) {
-      throw error
-    }
-    // 其他错误返回默认数据
     return {
       totalUsers: 0,
       totalTasks: 0,
@@ -99,12 +73,13 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
  */
 export const getSystemStatus = async (): Promise<SystemStatus> => {
   try {
-    // 模拟系统状态数据，实际项目中应该调用真实的系统监控API
+    const response = await http.get<ApiResponse<SystemStatus>>('/api/dashboard/system-status')
+    const data = response.data || {}
     return {
-      cpu: Math.floor(Math.random() * 30) + 20, // 20-50%
-      memory: Math.floor(Math.random() * 40) + 40, // 40-80%
-      disk: Math.floor(Math.random() * 20) + 20, // 20-40%
-      network: Math.random() > 0.1 ? 'normal' : 'error' // 90%概率正常
+      cpu: Number(data.cpu || 0),
+      memory: Number(data.memory || 0),
+      disk: Number(data.disk || 0),
+      network: data.network === 'normal' ? 'normal' : 'error'
     }
   } catch (error) {
     console.error('获取系统状态失败:', error)
@@ -122,53 +97,11 @@ export const getSystemStatus = async (): Promise<SystemStatus> => {
  */
 export const getRecentActivities = async (): Promise<ActivityRecord[]> => {
   try {
-    // 获取系统日志作为活动记录
-    const response = await http.get('/api/system-logs', {
-      params: { page: 0, size: 10, sortBy: 'createTime', sortDir: 'desc' }
-    }).catch(() => ({ data: { data: { content: [] } } }))
-
-    const logs = response.data?.data?.content || []
-    
-    // 将日志转换为活动记录格式
-    const activities: ActivityRecord[] = logs.map((log: any, index: number) => ({
-      id: log.id || index + 1,
-      type: getActivityType(log.module || log.level),
-      description: log.message || '系统活动',
-      time: log.createTime || new Date().toISOString()
-    }))
-
-    // 如果没有日志数据，返回模拟数据
-    if (activities.length === 0) {
-      const now = new Date()
-      return [
-        {
-          id: 1,
-          type: 'user',
-          description: '新用户注册成功',
-          time: new Date(now.getTime() - 5 * 60000).toISOString()
-        },
-        {
-          id: 2,
-          type: 'task',
-          description: '图片分类任务处理完成',
-          time: new Date(now.getTime() - 10 * 60000).toISOString()
-        },
-        {
-          id: 3,
-          type: 'model',
-          description: '模型训练任务启动',
-          time: new Date(now.getTime() - 15 * 60000).toISOString()
-        },
-        {
-          id: 4,
-          type: 'system',
-          description: '系统定时备份完成',
-          time: new Date(now.getTime() - 20 * 60000).toISOString()
-        }
-      ]
-    }
-
-    return activities.slice(0, 10) // 最多返回10条记录
+    const response = await http.get<ApiResponse<ActivityRecord[]>>('/api/dashboard/recent-activities', {
+      params: { size: 10 }
+    })
+    const activities = response.data || []
+    return activities.slice(0, 10)
   } catch (error) {
     console.error('获取活动记录失败:', error)
     return []
@@ -180,25 +113,22 @@ export const getRecentActivities = async (): Promise<ActivityRecord[]> => {
  */
 export const getChartData = async (period: string = '7d'): Promise<ChartData> => {
   try {
-    // 生成模拟的任务趋势数据
-    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90
-    const dates: string[] = []
-    const values: number[] = []
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      dates.push(date.toLocaleDateString())
-      values.push(Math.floor(Math.random() * 50) + 10) // 10-60的随机值
+    const response = await http.get<ApiResponse<ChartData>>('/api/dashboard/chart-data', {
+      params: { period }
+    })
+    const data = response.data || {
+      taskTrend: { dates: [], values: [] },
+      accuracy: { categories: [], values: [] }
     }
-
-    // 生成模拟的准确率数据
-    const categories = ['服装', '电子产品', '家居用品', '食品', '图书', '其他']
-    const accuracyValues = categories.map(() => Math.floor(Math.random() * 20) + 80) // 80-100%
-
     return {
-      taskTrend: { dates, values },
-      accuracy: { categories, values: accuracyValues }
+      taskTrend: {
+        dates: data.taskTrend?.dates || [],
+        values: data.taskTrend?.values || []
+      },
+      accuracy: {
+        categories: data.accuracy?.categories || [],
+        values: data.accuracy?.values || []
+      }
     }
   } catch (error) {
     console.error('获取图表数据失败:', error)
@@ -209,25 +139,111 @@ export const getChartData = async (period: string = '7d'): Promise<ChartData> =>
   }
 }
 
-/**
- * 根据日志模块或级别确定活动类型
- */
-function getActivityType(module: string): ActivityRecord['type'] {
-  const moduleMap: Record<string, ActivityRecord['type']> = {
-    'USER': 'user',
-    'TASK': 'task',
-    'IMAGE': 'task',
-    'SYSTEM': 'system',
-    'AUTH': 'user',
-    'ERROR': 'error',
-    'WARN': 'error'
+export interface OperatorDashboardStats {
+  todayUploads: number
+  processing: number
+  completed: number
+  accuracy: number
+}
+
+export interface OperatorRecentTask {
+  id: number
+  taskName: string
+  imageCount: number
+  totalImages: number
+  processedImages: number
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  progress: number
+  createTime: string
+}
+
+export interface OperatorOverviewData {
+  stats: OperatorDashboardStats
+  recentTasks: OperatorRecentTask[]
+}
+
+export interface OperatorChartData {
+  dailyTrend: {
+    dates: string[]
+    values: number[]
   }
-  return moduleMap[module?.toUpperCase()] || 'system'
+  categoryDistribution: {
+    categories: string[]
+    values: number[]
+  }
+}
+
+export const getOperatorOverview = async (): Promise<OperatorOverviewData> => {
+  try {
+    const response = await http.get<ApiResponse<OperatorOverviewData>>('/api/dashboard/operator/overview', {
+      params: { recentSize: 5 }
+    })
+    const data = response.data || { stats: {}, recentTasks: [] }
+    return {
+      stats: {
+        todayUploads: Number(data.stats?.todayUploads || 0),
+        processing: Number(data.stats?.processing || 0),
+        completed: Number(data.stats?.completed || 0),
+        accuracy: Number(data.stats?.accuracy || 0)
+      },
+      recentTasks: (data.recentTasks || []).map((task: any) => ({
+        id: Number(task.id || 0),
+        taskName: task.taskName || '未命名任务',
+        imageCount: Number(task.imageCount || task.totalImages || 0),
+        totalImages: Number(task.totalImages || task.imageCount || 0),
+        processedImages: Number(task.processedImages || 0),
+        status: task.status || 'PENDING',
+        progress: Number(task.progress || 0),
+        createTime: task.createTime || ''
+      }))
+    }
+  } catch (error) {
+    console.error('获取运营工作台概览失败:', error)
+    return {
+      stats: {
+        todayUploads: 0,
+        processing: 0,
+        completed: 0,
+        accuracy: 0
+      },
+      recentTasks: []
+    }
+  }
+}
+
+export const getOperatorChartData = async (period: string = '7d'): Promise<OperatorChartData> => {
+  try {
+    const response = await http.get<ApiResponse<OperatorChartData>>('/api/dashboard/operator/chart-data', {
+      params: { period }
+    })
+    const data = response.data || {
+      dailyTrend: { dates: [], values: [] },
+      categoryDistribution: { categories: [], values: [] }
+    }
+    return {
+      dailyTrend: {
+        dates: data.dailyTrend?.dates || [],
+        values: data.dailyTrend?.values || []
+      },
+      categoryDistribution: {
+        categories: data.categoryDistribution?.categories || [],
+        values: data.categoryDistribution?.values || []
+      }
+    }
+  } catch (error) {
+    console.error('获取运营工作台图表数据失败:', error)
+    return {
+      dailyTrend: { dates: [], values: [] },
+      categoryDistribution: { categories: [], values: [] }
+    }
+  }
 }
 
 export default {
   getDashboardStats,
   getSystemStatus,
   getRecentActivities,
-  getChartData
+  getChartData,
+  getOperatorOverview,
+  getOperatorChartData
 }

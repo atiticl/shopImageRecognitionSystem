@@ -135,12 +135,10 @@ public class ImageController {
                 return ApiResponse.error("文件上传为空");
             }
 
-            // 检查文件类型是否为压缩包
+            // 检查文件类型是否为zip压缩包
             String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || (!originalFilename.toLowerCase().endsWith(".zip") && 
-                !originalFilename.toLowerCase().endsWith(".rar") && 
-                !originalFilename.toLowerCase().endsWith(".7z"))) {
-                return ApiResponse.error("只支持zip、rar、7z格式的压缩包");
+            if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".zip")) {
+                return ApiResponse.error("只支持zip格式的压缩包");
             }
 
             log.info("Uploading batch file: {}, size: {}", file.getOriginalFilename(), file.getSize());

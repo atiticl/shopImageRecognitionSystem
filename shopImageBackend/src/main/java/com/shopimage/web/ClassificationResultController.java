@@ -41,6 +41,7 @@ public class ClassificationResultController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "24") int size,
             @RequestParam(required = false) Long taskId,
+            @RequestParam(required = false) Long predictedCategoryId,
             @RequestParam(required = false) String predictedCategory,
             @RequestParam(required = false) Double minConfidence,
             @RequestParam(required = false) Double maxConfidence,
@@ -49,13 +50,31 @@ public class ClassificationResultController {
         try {
             // 创建分页对象
             Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Set<Long> fuzzyCategoryIds = null;
+            if (predictedCategory != null && !predictedCategory.trim().isEmpty()) {
+                fuzzyCategoryIds = categoryRepository.findAll().stream()
+                        .filter(category -> category.getName() != null && category.getName().contains(predictedCategory.trim()))
+                        .map(Category::getId)
+                        .collect(Collectors.toSet());
+            }
             
             // 构建查询条件
+            Set<Long> finalFuzzyCategoryIds = fuzzyCategoryIds;
             Specification<ClassificationResult> spec = (root, query, criteriaBuilder) -> {
                 List<Predicate> predicates = new ArrayList<>();
                 
                 if (taskId != null) {
                     predicates.add(criteriaBuilder.equal(root.get("taskId"), taskId));
+                }
+
+                if (predictedCategoryId != null) {
+                    predicates.add(criteriaBuilder.equal(root.get("predictedCategoryId"), predictedCategoryId));
+                } else if (finalFuzzyCategoryIds != null) {
+                    if (finalFuzzyCategoryIds.isEmpty()) {
+                        predicates.add(criteriaBuilder.disjunction());
+                    } else {
+                        predicates.add(root.get("predictedCategoryId").in(finalFuzzyCategoryIds));
+                    }
                 }
                 
                 if (minConfidence != null) {
@@ -139,16 +158,6 @@ public class ClassificationResultController {
                         return item;
                     })
                     .collect(Collectors.toList());
-            
-            // 如果有预测分类筛选条件，进行过滤
-            if (predictedCategory != null && !predictedCategory.trim().isEmpty()) {
-                resultList = resultList.stream()
-                        .filter(item -> {
-                            String categoryName = (String) item.get("predictedCategoryName");
-                            return categoryName != null && categoryName.contains(predictedCategory);
-                        })
-                        .collect(Collectors.toList());
-            }
             
             Map<String, Object> response = new HashMap<>();
             response.put("data", resultList);

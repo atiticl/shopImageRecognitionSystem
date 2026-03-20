@@ -57,6 +57,7 @@
                 :action="batchUploadAction"
                 :headers="uploadHeaders"
                 :data="batchUploadData"
+                accept=".zip,application/zip,application/x-zip-compressed"
                 :before-upload="beforeBatchUpload"
                 :on-success="handleBatchUploadSuccess"
                 :on-error="handleBatchUploadError"
@@ -70,7 +71,7 @@
                 </div>
                 <template #tip>
                   <div class="el-upload__tip">
-                    支持 zip/rar/7z 格式，单个文件不超过 500MB，包含多张图片
+                    仅支持 zip 格式，单个文件不超过 500MB，包含多张图片
                   </div>
                 </template>
               </el-upload>
@@ -372,15 +373,13 @@ const resetUploadState = () => {
 
 // 批量上传前检查
 const beforeBatchUpload: UploadProps['beforeUpload'] = (file) => {
-  const allowedTypes = ['application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/x-7z-compressed']
+  const allowedTypes = ['application/zip', 'application/x-zip-compressed']
   const isValidType = allowedTypes.includes(file.type) || 
-                     file.name.toLowerCase().endsWith('.zip') || 
-                     file.name.toLowerCase().endsWith('.rar') || 
-                     file.name.toLowerCase().endsWith('.7z')
+                     file.name.toLowerCase().endsWith('.zip')
   const isLt500M = file.size / 1024 / 1024 < 500
 
   if (!isValidType) {
-    ElMessage.error('只能上传 zip、rar、7z 格式的压缩包!')
+    ElMessage.error('只能上传 zip 格式的压缩包!')
     return false
   }
   if (!isLt500M) {

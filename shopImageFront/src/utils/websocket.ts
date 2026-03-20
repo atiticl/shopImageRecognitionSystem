@@ -28,9 +28,12 @@ export class WebSocketService {
 
   private initSocket() {
     this.socket = io('http://localhost:5000', {
-      transports: ['websocket', 'polling'],
+      autoConnect: false,
+      transports: ['polling'],
+      upgrade: false,
       timeout: 20000,
-      forceNew: true
+      forceNew: false,
+      reconnection: true
     })
 
     this.socket.on('connect', () => {
@@ -64,7 +67,7 @@ export class WebSocketService {
       this.initSocket()
     }
     
-    if (!this.connected && this.socket) {
+    if (this.socket && !this.socket.connected) {
       try {
         this.socket.connect()
       } catch (error) {
@@ -74,7 +77,7 @@ export class WebSocketService {
   }
 
   disconnect() {
-    if (this.socket && this.connected) {
+    if (this.socket) {
       try {
         this.socket.disconnect()
         this.connected = false

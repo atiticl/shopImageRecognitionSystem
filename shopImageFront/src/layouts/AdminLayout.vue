@@ -905,7 +905,8 @@ watch(
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   padding: 0;
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100vh - 60px);
 }
 

@@ -79,7 +79,7 @@ public class UserService {
         user.setDepartment(request.getDepartment());
         user.setRole(request.getRole());
         user.setStatus(request.getStatus() != null ? request.getStatus() : User.Status.ACTIVE);
-        user.setAvatar(request.getAvatar());
+        user.setAvatar(normalizeAvatarForStorage(request.getAvatar()));
         user.setRemark(request.getRemark());
         user.setLoginCount(0);
         user.setTaskCount(0);
@@ -130,7 +130,10 @@ public class UserService {
         if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
         if (request.getRole() != null) user.setRole(request.getRole());
         if (request.getStatus() != null) user.setStatus(request.getStatus());
-        if (request.getAvatar() != null) user.setAvatar(request.getAvatar());
+        if (request.getAvatar() != null) {
+            String normalizedAvatar = normalizeAvatarForStorage(request.getAvatar());
+            user.setAvatar(normalizedAvatar);
+        }
         if (request.getRemark() != null) user.setRemark(request.getRemark());
         
         user.setUpdatedAt(LocalDateTime.now());
@@ -258,5 +261,43 @@ public class UserService {
      */
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    private String normalizeAvatarForStorage(String avatar) {
+        if (avatar == null) {
+            return null;
+        }
+        String value = avatar.trim();
+        if (value.isEmpty()) {
+            return null;
+        }
+        if (value.startsWith("minio://")) {
+            return value.length() <= 255 ? value : null;
+        }
+        if (value.startsWith("http://") || value.startsWith("https://")) {
+            String urlWithoutParams = value.split("\\?")[0];
+            try {
+                java.net.URI uri = java.net.URI.create(urlWithoutParams);
+                String path = uri.getPath();
+                if (path != null && !path.isBlank()) {
+                    String normalizedPath = path.startsWith("/") ? path.substring(1) : path;
+                    int slashIndex = normalizedPath.indexOf('/');
+                    if (slashIndex >= 0 && slashIndex < normalizedPath.length() - 1) {
+                        String objectName = normalizedPath.substring(slashIndex + 1);
+                        String minioPath = "minio://" + objectName;
+                        if (minioPath.length() <= 255) {
+                            return minioPath;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Avatar URL parse failed: {}", e.getMessage());
+            }
+        }
+        if (value.length() <= 255) {
+            return value;
+        }
+        log.warn("Avatar value too long and skipped. length={}", value.length());
+        return null;
     }
 }
