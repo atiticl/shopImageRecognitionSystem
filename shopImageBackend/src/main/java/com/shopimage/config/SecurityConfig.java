@@ -59,6 +59,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 // 公开接口
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/public/**").permitAll() // 展示商城公开接口
                 .requestMatchers("/api/categories/**").permitAll()
                 .requestMatchers("/api/images/upload").permitAll()
                 .requestMatchers("/api/images/view/**").permitAll() // 允许公开访问图片查看端点

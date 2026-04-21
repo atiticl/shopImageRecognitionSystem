@@ -33,17 +33,17 @@ spring:
       password:
       database: 2
   rabbitmq:
-    host: 114.66.57.6
+    host: 8.130.54.192
     port: 5672
-    username: guest
-    password: guest
+    username: admin
+    password: admin123456
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
 
 minio:
-  endpoint: http://114.66.57.6:9000
+  endpoint: http://8.130.54.192:9000
   access-key: admin
   secret-key: admin123456
   bucket: shop-images

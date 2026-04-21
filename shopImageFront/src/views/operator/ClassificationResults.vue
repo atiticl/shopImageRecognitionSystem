@@ -1573,6 +1573,16 @@ onMounted(() => {
   }
 }
 
+.preview-container {
+  text-align: center;
+
+  .preview-image {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+  }
+}
+
 .category-option {
   display: flex;
   flex-direction: column;

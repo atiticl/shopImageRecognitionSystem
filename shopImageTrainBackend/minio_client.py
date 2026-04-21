@@ -12,7 +12,7 @@ from urllib.parse import urljoin
 class MinIOClient:
     def __init__(self):
         # MinIO配置 - 与Java后端保持一致
-        self.endpoint = "114.66.57.6:9000"
+        self.endpoint = "8.130.54.192:9000"
         self.access_key = "admin"
         self.secret_key = "admin123456"
         self.bucket_name = "shop-images"
