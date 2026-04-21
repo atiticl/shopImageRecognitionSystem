@@ -3,6 +3,7 @@
 !/shopImageBackend/
 !/shopImageFront/
 !/shopImageTrainBackend/
+!/shopImageExhibition/
 !.gitignore
 !README.md
 
